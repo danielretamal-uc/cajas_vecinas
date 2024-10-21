@@ -1,4 +1,5 @@
 import requests
+from pyproj import Transformer
 
 def search_coordinates(address : str, distance : int = 50000):
     url = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates"
@@ -18,9 +19,12 @@ def search_coordinates(address : str, distance : int = 50000):
     if response.status_code == 200:
         data = response.json()
         if data.get('candidates'):
-            print(data['candidates'])
             first_candidate = data['candidates'][0]
-            return first_candidate['location']['y'] / 100000, first_candidate['location']['x'] / 100000
+            web_mercator_x = first_candidate['location']['x']
+            web_mercator_y = first_candidate['location']['y']
+            
+            lat, lng = convert_to_lat_lng(web_mercator_x, web_mercator_y)
+            return lat, lng
         else:
             print("No address match found.")
             return None, None
@@ -28,4 +32,11 @@ def search_coordinates(address : str, distance : int = 50000):
         print(f"Error: Received status code {response.status_code}")
         return None, None
 
-search_coordinates("poeta huidobro 3500, macul")
+def convert_to_lat_lng(x, y):
+    transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+    lng, lat = transformer.transform(x, y)
+    return lat, lng
+
+if __name__ == "__main__":
+   lat, lng = search_coordinates("Av. Príncipe de Gales 7170, La Reina")
+   print(f"{lat}, {lng}")

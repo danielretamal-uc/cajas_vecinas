@@ -35,11 +35,14 @@ def search_caja_vecinas(lat, lng):
         print(f"Error: Received status code {response.status_code}")
         return None
 
-latitude = -33.49217279999944
-longitude = -70.6052095999988
-cajas_vecinas_data = search_caja_vecinas(latitude, longitude)
-
-if cajas_vecinas_data:
-    for caja_vecina_data in cajas_vecinas_data:
-        caja_vecina : CajaVecina = CajaVecina(caja_vecina_data)
-        print(caja_vecina)
+if __name__ == "__main__":
+    latitude = -33.43886093844669
+    longitude = -70.55856928189903
+    cajas_vecinas_data = search_caja_vecinas(latitude, longitude)
+    
+    max_count = 3
+    if cajas_vecinas_data:
+        for i in range(len(cajas_vecinas_data)):
+            if i >= max_count: break
+            caja_vecina : CajaVecina = CajaVecina(cajas_vecinas_data[i])
+            print(caja_vecina)
