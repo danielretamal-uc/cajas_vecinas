@@ -9,3 +9,13 @@ Wrapper de ```https://cajavecina.gisgeoresearch.com/``` para la obtención de ``
 
 ## get_nearest_cajas_vecinas.py
 ```find_nearest_cajas_vecinas(address : str)```: A partir de una dirección, entrega listado de ```Cajas Vecinas```
+
+## Requisitos
+Librerias requeridas:
+* ```requests```
+* ```pyproj```
+
+
+Se instalan mediante
+
+```pip install requests pyproj```
