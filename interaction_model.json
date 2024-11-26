@@ -1,0 +1,98 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "encuentra mi cajero",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.FallbackIntent",
+                    "samples": []
+                },
+                {
+                    "name": "FindCajasVecinasIntent",
+                    "slots": [
+                        {
+                            "name": "address",
+                            "type": "AMAZON.SearchQuery"
+                        }
+                    ],
+                    "samples": [
+                        "busca cajas vecinas cerca de {address}",
+                        "busca cajas vecinas cerca",
+                        "encuentra cajas vecinas cercanas",
+                        "busca cajas vecinas en {address}",
+                        "encuentra cajas vecinas en {address}",
+                        "donde hay cajas vecinas cerca",
+                        "donde hay cajas vecinas en {address}"
+                    ]
+                },
+                {
+                    "name": "FindATMIntent",
+                    "slots": [
+                        {
+                            "name": "address",
+                            "type": "AMAZON.SearchQuery"
+                        }
+                    ],
+                    "samples": [
+                        "busca cajeros cerca de {address}",
+                        "busca cajeros cerca",
+                        "encuentra cajeros cercanos",
+                        "busca cajeros en {address}",
+                        "encuentra cajeros en {address}",
+                        "donde hay cajeros cerca",
+                        "donde hay cajeros en {address}"
+                    ]
+                },
+                {
+                    "name": "FindBothIntent",
+                    "slots": [
+                        {
+                            "name": "address",
+                            "type": "AMAZON.SearchQuery"
+                        }
+                    ],
+                    "samples": [
+                        "busca cajas vecinas o cajeros cerca de {address}",
+                        "busca cajas vecinas o cajeros estado cerca",
+                        "encuentra cajas vecinas o cajeros cercanos",
+                        "busca cajas vecinas o cajeros cerca",
+                        "encuentra cajas vecinas o cajeros cerca",
+                        "donde hay cajas vecinas o cajeros cerca",
+                        "donde hay cajas vecinas o cajeros en {address}",
+                        "busca cajas vecinas y cajeros cerca de {address}",
+                        "busca cajas vecinas y cajeros estado cerca",
+                        "encuentra cajas vecinas y cajeros cercanos",
+                        "busca cajas vecinas y cajeros cerca",
+                        "encuentra cajas vecinas y cajeros cerca",
+                        "donde hay cajas vecinas y cajeros cerca",
+                        "donde hay cajas vecinas y cajeros en {address}",
+                        "busca servicios banco estado cerca de {address}",
+                        "busca servicios banco estado cerca",
+                        "encuentra servicios banco estado cercanos",
+                        "busca servicios cerca",
+                        "encuentra servicios cerca",
+                        "donde hay servicios cerca",
+                        "donde hay servicios en {address}"
+                    ]
+                }
+            ],
+            "types": []
+        }
+    }
+}

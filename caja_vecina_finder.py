@@ -4,7 +4,7 @@ class BancoEstadoEntity:
     def __init__(self, data) -> None:
         self.id = data["id"]
         self.address = data["direccion"]
-        self.number = data["numero"]
+        self.number = data["numero"] if data["numero"] else ""
         self.distance = float(data["distancia"])
         self.neighborhood = data["comuna"]
         self.accessibility = data["accesibilidad"]
@@ -91,4 +91,4 @@ if __name__ == "__main__":
         for i in range(len(cajas_vecinas_data)):
             if i >= max_count: break
             caja_vecina : CajaVecina = CajaVecina(cajas_vecinas_data[i])
-            print(caja_vecina)
+            print(caja_vecina.get_speech_text())

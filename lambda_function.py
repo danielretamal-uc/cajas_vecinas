@@ -1,4 +1,7 @@
 from ask_sdk_core.skill_builder import SkillBuilder
+from ask_sdk_core.skill_builder import CustomSkillBuilder
+from ask_sdk_core.api_client import DefaultApiClient
+from ask_sdk.standard import StandardSkillBuilder
 from ask_sdk_core.dispatch_components import AbstractRequestHandler, AbstractExceptionHandler
 from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_core.utils import is_request_type, is_intent_name
@@ -14,7 +17,7 @@ from caja_vecina_finder import search_cajas_vecinas, search_ATM, search_cajas_ve
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-sb = SkillBuilder()
+sb = CustomSkillBuilder(api_client=DefaultApiClient())
 
 def get_device_location(handler_input) -> Optional[Tuple[float, float]]:
     try:
@@ -23,25 +26,13 @@ def get_device_location(handler_input) -> Optional[Tuple[float, float]]:
             return None
 
         try:
-            geo_client = service_client_fact.get_geolocation_service()
-            geo_location = geo_client.get_coordinate()
-            
-            if geo_location and geo_location.coordinate:
-                return (geo_location.coordinate.latitude_in_degrees,
-                       geo_location.coordinate.longitude_in_degrees)
+            geo_supported = handler_input.request_envelope.context.system.device.supported_interfaces.geolocation
+            device_geolocation = handler_input.request_envelope.context.geolocation
+            if geo_supported and device_geolocation.coordinate:
+                return (device_geolocation.coordinate.latitude_in_degrees,
+                       device_geolocation.coordinate.longitude_in_degrees)
         except ServiceException as e:
             logger.info(f"Geolocation not available: {str(e)}")
-
-        try:
-            device_id = handler_input.request_envelope.context.system.device.device_id
-            device_addr_client = service_client_fact.get_device_address_service()
-            location = device_addr_client.get_full_address(device_id)
-
-            if location.address_line1 and location.city:
-                full_address = f"{location.address_line1}, {location.city}"
-                return search_coordinates(full_address)
-        except ServiceException as e:
-            logger.info(f"Device address not available: {str(e)}")
         
         return None
         
@@ -82,73 +73,68 @@ class FindBancoEstadoEntitiesIntentHandler(AbstractRequestHandler):
                 is_intent_name("FindBothIntent")(handler_input))
 
     def handle(self, handler_input):
-        intent_name = handler_input.request_envelope.request.intent.name
-        slots = handler_input.request_envelope.request.intent.slots
-        address = slots.get("address", None)
-        address_value = address.value if address else None
-        
-        if address_value:
-            lat, lng = search_coordinates(address_value)
-            if lat is None or lng is None:
-                speech_text = ("No pude encontrar esa dirección. "
-                             "Por favor, intenta nuevamente con una dirección diferente.")
-                return handler_input.response_builder.speak(speech_text)\
-                    .set_should_end_session(False).response
-        else:
-            permissions = handler_input.request_envelope.context.system.user.permissions
-            if not permissions or \
-               permissions.scopes.get("alexa::devices:all:geolocation:read", {}).get("status") == "DENIED":
-                speech_text = ("Para buscar servicios cerca de ti, necesito acceso a tu ubicación. "
-                             "Por favor, autoriza el acceso a la ubicación en la aplicación Alexa "
-                             "y vuelve a intentarlo. También puedes especificar una dirección diciendo "
-                             "'busca cerca de' seguido de tu dirección.")
-                
-                permissions = ["alexa::devices:all:geolocation:read"]
-                return handler_input.response_builder.speak(speech_text)\
-                    .add_directive({
-                        "type": "Connections.SendRequest",
-                        "name": "AskFor",
-                        "payload": {
-                            "permissionScope": "alexa::devices:all:geolocation:read"
-                        },
-                        "token": ""
-                    })\
-                    .set_should_end_session(False).response
-
-            location = get_device_location(handler_input)
+        try:
+            intent_name = handler_input.request_envelope.request.intent.name
+            slots = handler_input.request_envelope.request.intent.slots
+            address = slots.get("address", None)
+            address_value = address.value if address else None
             
-            if location:
-                lat, lng = location
+            if address_value:
+                lat, lng = search_coordinates(address_value)
+                if lat is None or lng is None:
+                    speech_text = ("No pude encontrar esa dirección. "
+                                 "Por favor, intenta nuevamente con una dirección diferente.")
+                    return handler_input.response_builder.speak(speech_text)\
+                        .set_should_end_session(False).response
             else:
-                speech_text = ("No pude obtener tu ubicación actual. "
-                             "Por favor, especifica una dirección diciendo "
-                             "'busca cerca de' seguido de tu dirección.")
+                location = get_device_location(handler_input)
+                
+                if location:
+                    lat, lng = location
+                else:
+                    speech_text = ("No pude obtener tu ubicación actual. "
+                                 "Por favor, especifica una dirección diciendo "
+                                 "'busca cerca de' seguido de tu dirección.")
+                    return handler_input.response_builder.speak(speech_text)\
+                        .set_should_end_session(False).response
+            
+            entities = []
+            try:
+                if intent_name == "FindCajasVecinasIntent":
+                    data = search_cajas_vecinas(lat, lng)
+                    if data:
+                        entities = [CajaVecina(item) for item in data]
+                elif intent_name == "FindATMIntent":
+                    data = search_ATM(lat, lng)
+                    if data:
+                        entities = [ATM(item) for item in data]
+                else:
+                    entities = search_cajas_vecinas_and_ATM(lat, lng)
+            except Exception as e:
+                logger.error(f"Error searching for entities: {str(e)}")
+                speech_text = ("Lo siento, hubo un problema buscando servicios. "
+                             "Por favor, intenta nuevamente.")
                 return handler_input.response_builder.speak(speech_text)\
                     .set_should_end_session(False).response
-        
-        entities = []
-        if intent_name == "FindCajasVecinasIntent":
-            data = search_cajas_vecinas(lat, lng)
-            if data:
-                entities = [CajaVecina(item) for item in data]
-        elif intent_name == "FindATMIntent":
-            data = search_ATM(lat, lng)
-            if data:
-                entities = [ATM(item) for item in data]
-        else:
-            entities = search_cajas_vecinas_and_ATM(lat, lng)
-        
-        if not entities:
-            speech_text = "No encontré servicios cercanos a esa ubicación."
+            
+            if not entities:
+                speech_text = "No encontré servicios cercanos a esa ubicación."
+                return handler_input.response_builder.speak(speech_text)\
+                    .set_should_end_session(False).response
+            
+            speech_text = format_entities_response(entities)
+            title = "Ubicaciones Cercanas"
+            
+            return handler_input.response_builder.speak(speech_text)\
+                .set_card(SimpleCard(title, speech_text))\
+                .set_should_end_session(False).response
+                
+        except Exception as e:
+            logger.error(f"Error in FindBancoEstadoEntitiesIntentHandler: {str(e)}", exc_info=True)
+            speech_text = ("Lo siento, ocurrió un error inesperado. "
+                         "Por favor, intenta nuevamente.")
             return handler_input.response_builder.speak(speech_text)\
                 .set_should_end_session(False).response
-        
-        speech_text = format_entities_response(entities)
-        title = "Ubicaciones Cercanas"
-        
-        return handler_input.response_builder.speak(speech_text)\
-            .set_card(SimpleCard(title, speech_text))\
-            .set_should_end_session(False).response
 
 class HelpIntentHandler(AbstractRequestHandler):
     def can_handle(self, handler_input):
