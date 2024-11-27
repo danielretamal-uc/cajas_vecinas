@@ -26,7 +26,7 @@ class CajaVecina(BancoEstadoEntity):
 class ATM(BancoEstadoEntity):
     def __init__(self, data) -> None:
         super().__init__(data)
-        self.audible = data["audible"]
+        self.audible = True if data["audible"] == 1 else False
     
     def get_speech_text(self):
         speech_text = f"Cajero"
